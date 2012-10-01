@@ -21,14 +21,12 @@
 #        -negative:attempt to attach an in-use volume, should fail
 #        -attach a 2nd volume to an instance, write random date to vol and calc md5 of volumes
 #        -reboot instance
-#        -verify both volumes are attached after reboot of instance
+#        -verify both volumes are attached after reboot of instance. 
 #        -detach 1st volume
 #        -create snapshot of detached volume
 #        -create snapshot of attached volume
-#        
-#        Multi-cluster portion...
-#        -attempt to create a volume of each snapshot, if multi 1 in each cluster
-#        -attempt to attach each volume to an instance verify md5s
+#        -attempt to create a volume of each snapshot, if within a multi-cluster env do 1 in each cluster 
+#        -attempt to attach each volume created from the previous snaps to an instance verify md5s
 #        
 #        Properties tests:
 #        -create a volume of greater than prop size, should fail
@@ -38,10 +36,11 @@
 #        Cleanup:
 #        --remove all volumes, instance, and snapshots created during this test
 #
+#    @author: clarkmatthew
 
 import unittest
-from testcases.eutester_testcase import EutesterTestCase
-from testcases.eutester_testcase import EutesterTestResult
+from eutester.eutestcase import EutesterTestCase
+from eutester.eutestcase import EutesterTestResult
 from ebstestsuite import EbsTestSuite
 import argparse
 import os
@@ -53,6 +52,7 @@ password = None
 credpath = None
 keypair = None
 group = None
+vmtype = None
 emi = None
 
 class ebs_tests(unittest.TestCase):
@@ -67,7 +67,9 @@ class ebs_tests(unittest.TestCase):
                             credpath=credpath, 
                             keypair=keypair, 
                             group=group, 
+                            vmtype=vmtype,
                             image=emi)
+        
     def test_ebs_basic_test_suite(self):
         '''
         Full suite of ebs related tests
@@ -81,6 +83,8 @@ class ebs_tests(unittest.TestCase):
         '''
         try:
             self.ebssuite.clean_created_resources()
+        except:
+            self.ebssuite.debug("Cleanup failed. Exiting normally")
         finally:
             self.ebssuite.print_test_list_results()
             
@@ -111,8 +115,8 @@ if __name__ == "__main__":
                         help="group to use when launching instances within the test", default=None) 
     parser.add_argument('--config',
                        help='path to config file', default='../input/2btested.lst') 
-    
-
+    parser.add_argument('--vmtype',
+                       help='vmtype to run this test with', default=None) 
     parser.add_argument('--tests', nargs='+', 
                         help="test cases to be executed", 
                         default= ['test_ebs_basic_test_suite'])
@@ -135,6 +139,7 @@ if __name__ == "__main__":
     keypair = args.keypair
     group = args.group
     emi = args.emi
+    vmtype = args.vmtype
     
     for test in args.tests:
         result = unittest.TextTestRunner(verbosity=2).run( ebs_tests(test))
